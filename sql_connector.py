@@ -3,8 +3,8 @@ import mysql.connector #install mysql drive for each project from "settings" of 
 
 mydb = mysql.connector.connect(
     host = "localhost",
-    user = "sabah",
-    password = "sabah123",
+    user = "<user name>",
+    password = "<password>",
     database = "aemo_generation"
 )
 

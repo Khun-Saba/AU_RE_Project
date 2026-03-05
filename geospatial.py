@@ -4,8 +4,6 @@ from matplotlib import pyplot as plt
 from shapely.geometry import Point
 from pathlib import Path #handle file paths
 
-
-
 def add_fake_coordinates(df):
     """
     Add fake lat/lon based on NEM region.
@@ -23,16 +21,6 @@ def add_fake_coordinates(df):
     # Create empty columns to create spatial information
     df["Latitude"] = None
     df["Longitude"] = None
-
-#for loop - each item in region_coordinates dictionary For each item in the dictionary:
-                    # region = "NSW1"
-                    # lat = -33.0
-                    # lon = 147.0
-                    # Then next loop:
-                    # region = "QLD1"
-                    # lat = -21.0
-                    # lon = 145.0
-                    # And so on.
 
     # ---------------- Create clustered but slightly spread points.
 
@@ -93,113 +81,3 @@ def export_to_geojson(gdf):
 
     print(f"GeoJSON exported successfully to: {save_path}")
 
-# ------- Distance between points ----------------
-def calculate_distances(gdf):
-    """
-    Calculate distance between each plant and every other plant (meters).
-    """
-
-    # Convert to projected CRS (meters from degree)
-    gdf_projected = gdf.to_crs("EPSG:3577")
-
-    # Create empty list for results
-    distance_results = []
-
-    for i, geom in enumerate(gdf_projected.geometry):
-
-        distances = gdf_projected.distance(geom)
-
-        distances.iloc[i] = np.inf  # ignore self-distance
-
-        nearest_index = distances.idxmin()
-        nearest_distance = distances.min()
-
-        distance_results.append(nearest_distance)
-
-    gdf_projected["Nearest_Distance_m"] = distance_results
-
-    print("\nDistance calculation completed.")
-    print(gdf_projected[["Nearest_Distance_m"]].head())
-
-    return gdf_projected
-
-# ------- Create Polygon and Spatial Join --------------------
-from shapely.geometry import Polygon
-
-def spatial_join_example(gdf):
-    """
-    Create example polygon and check which plants fall inside.
-    """
-
-    # Create simple polygon (example zone)
-    polygon = Polygon([
-        (145, -35),
-        (150, -35),
-        (150, -30),
-        (145, -30)
-    ])
-
-    zones = gpd.GeoDataFrame(
-        {"Zone": ["Example_Zone"],
-         "geometry": [polygon]},
-        crs="EPSG:3577"
-    )
-
-    # Spatial join
-    joined = gpd.sjoin(
-        gdf,
-        zones,
-        how="left",
-        predicate="within"
-    )
-
-    print("\nSpatial Join Completed.")
-    print(joined[["Zone"]].head())
-
-    return joined
-
-# ----- Check if inside Polygon (Boolean Method)
-def check_inside_polygon(gdf):
-    """
-    Add boolean column if plant is inside polygon.
-    """
-
-    polygon = Polygon([
-        (145, -35),
-        (150, -35),
-        (150, -30),
-        (145, -30)
-    ])
-
-    gdf["Inside_Polygon"] = gdf.within(polygon)
-
-    print("\nInside polygon check completed.")
-    print(gdf[["Inside_Polygon"]].head())
-
-    return gdf
-
-# ----- Buffer Zone ----
-def create_buffer_zone(gdf, buffer_km=50):
-    """
-    Create buffer around each plant.
-    """
-
-    gdf_projected = gdf.to_crs("EPSG:3577")
-
-    # Convert km to meters
-    buffer_meters = buffer_km * 1000
-
-    gdf_projected["Buffer"] = gdf_projected.geometry.buffer(buffer_meters)
-
-    print(f"\n{buffer_km} km buffer created.")
-
-    return gdf_projected
-
-# ------------ Plot Buffer--------------
-def plot_buffer(gdf_projected):
-
-    ax = gdf_projected.plot(alpha=0.5)
-    gdf_projected["Buffer"].plot(ax=ax, alpha=0.3)
-
-    plt.title("Plant Buffers")
-    plt.show()
